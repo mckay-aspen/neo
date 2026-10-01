@@ -1,10 +1,15 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+  type ComponentProps,
+} from "react";
 import {
   ArrowDownToLine,
   ArrowLeft,
   ArrowRight,
   Check,
-  ChevronDown,
   ChevronLeft,
   ChevronRight,
   CircleHelp,
@@ -22,6 +27,32 @@ import {
   Upload,
   X,
 } from "lucide-react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import { invoke } from "@tauri-apps/api/core";
 import {
   useLibrary,
@@ -40,43 +71,74 @@ const number = (n: number) => n.toLocaleString();
 const date = (s: string) =>
   new Date(s).toLocaleDateString(undefined, { month: "short", day: "numeric" });
 
+function IconButton({
+  children,
+  title,
+  ...props
+}: ComponentProps<typeof Button>) {
+  const label = title || props["aria-label"];
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button variant="ghost" size="icon" {...props}>
+          {children}
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent sideOffset={8}>{label}</TooltipContent>
+    </Tooltip>
+  );
+}
+
 function Modal({
+  restoreFocusTo,
   title,
   onClose,
   children,
 }: {
   title: string;
+  restoreFocusTo: HTMLElement | null;
   onClose: () => void;
   children: ReactNode;
 }) {
-  const ref = useRef<HTMLDialogElement>(null);
-  useEffect(() => {
-    const dialog = ref.current!;
-    dialog.showModal();
-    return () => dialog.close();
-  }, []);
+  const [opener] = useState(() => restoreFocusTo ?? document.activeElement as HTMLElement | null);
   return (
-    <dialog
-      ref={ref}
-      aria-labelledby="dialog-title"
-      onCancel={onClose}
-      onClick={(e) => {
-        if (e.target === ref.current) onClose();
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open) onClose();
       }}
-      className="dialog"
     >
-      <div className="dialog-header">
-        <h2 id="dialog-title">{title}</h2>
-        <button
-          className="icon-button"
-          onClick={onClose}
-          aria-label="Close dialog"
-        >
-          <X size={18} />
-        </button>
-      </div>
-      {children}
-    </dialog>
+      <DialogContent
+        className="dialog"
+        showCloseButton={false}
+        onCloseAutoFocus={(event) => {
+          event.preventDefault();
+          requestAnimationFrame(() => {
+            const target =
+              opener?.isConnected && opener !== document.body && !opener.closest("[inert]")
+                ? opener
+                : (document.querySelector<HTMLElement>(".prose-editor") ??
+                  document.querySelector<HTMLElement>(".brand"));
+            target?.focus();
+          });
+        }}
+      >
+        <div className="dialog-header">
+          <DialogTitle>{title}</DialogTitle>
+          <IconButton
+            className="icon-button"
+            aria-label="Close dialog"
+            onClick={onClose}
+          >
+            <X size={18} />
+          </IconButton>
+        </div>
+        <DialogDescription className="sr-only">
+          {title}. Your manuscript is saved automatically.
+        </DialogDescription>
+        {children}
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -108,9 +170,9 @@ function BookForm({
         );
       }}
     >
-      <label>
+      <Label>
         Title
-        <input
+        <Input
           autoFocus
           name="title"
           defaultValue={book?.title}
@@ -118,19 +180,19 @@ function BookForm({
           required
           maxLength={200}
         />
-      </label>
-      <label>
+      </Label>
+      <Label>
         Author <span className="optional">optional</span>
-        <input
+        <Input
           name="author"
           defaultValue={book?.author}
           placeholder="Your name"
           maxLength={200}
         />
-      </label>
-      <label>
+      </Label>
+      <Label>
         Word goal
-        <input
+        <Input
           name="goal"
           type="number"
           defaultValue={book?.goal ?? 50000}
@@ -140,27 +202,32 @@ function BookForm({
           required
         />
         <small>Set to 0 to write without a target.</small>
-      </label>
+      </Label>
       {book && (
-        <label>
+        <Label>
           A note about this book
-          <textarea
+          <Textarea
             name="description"
             defaultValue={book.description}
             placeholder="A small reminder of what this story could be."
             rows={3}
             maxLength={2000}
           />
-        </label>
+        </Label>
       )}
       <div className="dialog-actions">
-        <button type="button" className="secondary" onClick={onClose}>
+        <Button
+          variant="outline"
+          type="button"
+          className="secondary"
+          onClick={onClose}
+        >
           Cancel
-        </button>
-        <button className="primary" type="submit">
+        </Button>
+        <Button className="primary" type="submit">
           {book ? "Save details" : "Begin writing"}
           <ArrowRight size={16} />
-        </button>
+        </Button>
       </div>
     </form>
   );
@@ -183,15 +250,23 @@ export default function App() {
   const [bookId, setBookId] = useState<string | null>(null);
   const [chapterId, setChapterId] = useState<string | null>(null);
   const [modal, setModal] = useState<ModalKind>(null);
+  const modalOpener = useRef<HTMLElement | null>(null);
+  const openModal = (kind: ModalKind, trigger?: HTMLElement) => { modalOpener.current = trigger ?? document.activeElement as HTMLElement | null; setModal(kind); };
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState("recent");
+  const [sortOpen, setSortOpen] = useState(false);
+  const reduceMotion = useReducedMotion();
+  const entrance = {
+    initial: { opacity: 0, y: reduceMotion ? 0 : 6 },
+    animate: { opacity: 1, y: 0 },
+  };
   const [focus, setFocus] = useState(false);
   const [notes, setNotes] = useState(false);
   const [dark, setDark] = useState(() => {
     try {
-      return localStorage.getItem("neo-minimal-theme") === "dark";
+      return localStorage.getItem("neo-minimal-theme-v2") !== "light";
     } catch {
-      return false;
+      return true;
     }
   });
   const [notice, setNotice] = useState("");
@@ -215,8 +290,9 @@ export default function App() {
 
   useEffect(() => {
     document.documentElement.dataset.theme = dark ? "dark" : "light";
+    document.documentElement.classList.toggle("dark", dark);
     try {
-      localStorage.setItem("neo-minimal-theme", dark ? "dark" : "light");
+      localStorage.setItem("neo-minimal-theme-v2", dark ? "dark" : "light");
     } catch {
       /* Theme preference is optional. */
     }
@@ -228,6 +304,8 @@ export default function App() {
     let disposed = false;
     const finish = async (action: () => Promise<unknown>) => {
       setClosing(true);
+      setModal(null);
+      setSortOpen(false);
       try {
         if (!canCloseWithoutFlush.current) await flushRef.current();
         await action();
@@ -274,6 +352,7 @@ export default function App() {
   }, []);
   useEffect(() => {
     const key = (event: KeyboardEvent) => {
+      if (event.defaultPrevented) return;
       if ((event.metaKey || event.ctrlKey) && event.key === "s") {
         event.preventDefault();
         flushRef.current().catch(() => {});
@@ -293,18 +372,32 @@ export default function App() {
       }
       if ((event.metaKey || event.ctrlKey) && event.key === "/") {
         event.preventDefault();
-        setModal("help");
+        openModal("help");
       }
     };
     window.addEventListener("keydown", key);
     return () => window.removeEventListener("keydown", key);
   }, [bookId, modal]);
   useEffect(() => {
-    if (editor.current) {
-      editor.current.style.height = "auto";
-      editor.current.style.height = `${Math.max(400, editor.current.scrollHeight)}px`;
-    }
-  }, [chapter?.content, chapter?.id, focus]);
+    const element = editor.current;
+    if (!element) return;
+    const resize = () => {
+      element.style.height = "auto";
+      element.style.height = `${Math.max(400, element.scrollHeight)}px`;
+    };
+    resize();
+    let width = element.parentElement?.getBoundingClientRect().width;
+    const observer = new ResizeObserver((entries) => {
+      const nextWidth = entries[0]?.contentRect.width;
+      if (nextWidth !== width) {
+        width = nextWidth;
+        resize();
+      }
+    });
+    if (element.parentElement) observer.observe(element.parentElement);
+    return () => observer.disconnect();
+  }, [chapter?.content, chapter?.id, focus, notes]);
+
   useEffect(() => {
     if (!notice) return;
     const timer = setTimeout(() => setNotice(""), 10000);
@@ -399,10 +492,10 @@ export default function App() {
     }
     if (fileInput.current) fileInput.current.value = "";
   };
-  const loadHistory = async () => {
+  const loadHistory = async (trigger?: HTMLElement) => {
     if (!book) return;
     const request = ++historyRequest.current;
-    setModal("history");
+    openModal("history", trigger);
     setHistoryBusy(true);
     setHistoryError("");
     setSnapshot(null);
@@ -531,13 +624,13 @@ export default function App() {
               </div>
               <div className="section-label">
                 Chapters{" "}
-                <button
+                <IconButton
                   className="icon-button"
                   onClick={addChapter}
                   aria-label="Add chapter"
                 >
                   <Plus size={16} />
-                </button>
+                </IconButton>
               </div>
               <nav className="chapter-list" aria-label="Chapters">
                 {book.chapters.map((c, i) => (
@@ -549,6 +642,14 @@ export default function App() {
                       setNotes(false);
                     }}
                   >
+                    {chapter?.id === c.id && (
+                      <motion.span
+                        className="chapter-highlight"
+                        layoutId="selected-chapter"
+                        transition={{ duration: reduceMotion ? 0 : 0.18 }}
+                        aria-hidden="true"
+                      />
+                    )}
                     <span className="chapter-number">
                       {String(i + 1).padStart(2, "0")}
                     </span>
@@ -570,7 +671,7 @@ export default function App() {
                 <div className="progress-label">
                   <span>{number(total)} words</span>
                   <button
-                    onClick={() => setModal("details")}
+                    onClick={event => openModal("details", event.currentTarget)}
                     aria-label="Edit word goal"
                   >
                     {book.goal ? `${Math.round(percent)}%` : "Set goal"}
@@ -578,9 +679,11 @@ export default function App() {
                 </div>
                 {book.goal > 0 && (
                   <>
-                    <div className="progress-track">
-                      <span style={{ width: `${percent}%` }} />
-                    </div>
+                    <Progress
+                      className="progress-track"
+                      value={percent}
+                      aria-label="Manuscript word goal"
+                    />
                     <p className="goal-caption">
                       of {number(book.goal)} · one word at a time
                     </p>
@@ -588,7 +691,7 @@ export default function App() {
                 )}
                 <button
                   className="sidebar-action"
-                  onClick={() => setModal("details")}
+                  onClick={event => openModal("details", event.currentTarget)}
                 >
                   <Settings2 size={16} />
                   Book details
@@ -639,20 +742,20 @@ export default function App() {
           )}
           <div className="sidebar-footer">
             <span>Made for the writing.</span>
-            <button
+            <IconButton
               className="icon-button"
               aria-label={dark ? "Use light theme" : "Use dark theme"}
               onClick={() => setDark((v) => !v)}
             >
               {dark ? <Sun size={16} /> : <Moon size={16} />}
-            </button>
-            <button
+            </IconButton>
+            <IconButton
               className="icon-button"
               aria-label="Help and keyboard shortcuts"
-              onClick={() => setModal("help")}
+              onClick={event => openModal("help", event.currentTarget)}
             >
               <CircleHelp size={16} />
-            </button>
+            </IconButton>
           </div>
         </aside>
       )}
@@ -671,7 +774,9 @@ export default function App() {
                 </button>
                 <ChevronRight size={13} />
                 <span>{book.title}</span>
-                <span className="draft-tag">DRAFT</span>
+                <Badge variant="outline" className="draft-tag">
+                  DRAFT
+                </Badge>
               </>
             ) : (
               <>
@@ -701,23 +806,26 @@ export default function App() {
                           : "Saved in browser"}
                   </span>
                 </span>
-                <span className="toolbar-separator" />
-                <button
+                <Separator
+                  orientation="vertical"
+                  className="toolbar-separator"
+                />
+                <IconButton
                   className={`icon-button ${focus ? "selected" : ""}`}
                   aria-label={focus ? "Exit focus mode" : "Enter focus mode"}
                   title="Focus mode · ⌘⇧F"
                   onClick={() => setFocus((v) => !v)}
                 >
                   {focus ? <PanelLeftClose size={17} /> : <Focus size={17} />}
-                </button>
-                <button
+                </IconButton>
+                <IconButton
                   className="icon-button"
                   aria-label="Version history"
                   title="Version history"
-                  onClick={loadHistory}
+                  onClick={event => loadHistory(event.currentTarget)}
                 >
                   <History size={17} />
-                </button>
+                </IconButton>
                 <button className="export-button" onClick={exportBook}>
                   <ArrowDownToLine size={16} />
                   <span>Export</span>
@@ -746,16 +854,29 @@ export default function App() {
             {recoveryNotice}
           </div>
         )}
-        {notice && (
-          <div className="notice" role="status">
-            {notice}
-            <button aria-label="Dismiss message" onClick={() => setNotice("")}>
-              <X size={14} />
-            </button>
-          </div>
-        )}
+        <AnimatePresence>
+          {notice && (
+            <motion.div
+              key={notice}
+              className="notice"
+              role="status"
+              style={{ x: "-50%" }}
+              initial={{ opacity: 0, y: reduceMotion ? 0 : 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: reduceMotion ? 0 : 8 }}
+            >
+              {notice}
+              <button
+                aria-label="Dismiss message"
+                onClick={() => setNotice("")}
+              >
+                <X size={14} />
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
         {!book ? (
-          <main className="library-main">
+          <motion.main key="library" className="library-main" {...entrance}>
             <div className="library-heading">
               <div>
                 <span className="eyebrow">A PLACE FOR YOUR WORDS</span>
@@ -764,14 +885,14 @@ export default function App() {
                   A little less noise. A little more room for your next chapter.
                 </p>
               </div>
-              <button
+              <Button
                 className="primary"
                 disabled={!ready}
-                onClick={() => setModal("new")}
+                onClick={event => openModal("new", event.currentTarget)}
               >
                 <Plus size={17} />
                 New manuscript
-              </button>
+              </Button>
             </div>
             <div className="library-tools">
               <div className="manuscript-count">
@@ -780,24 +901,30 @@ export default function App() {
               <div className="filter-tools">
                 <label className="search-field">
                   <Search size={16} />
-                  <input
+                  <Input
                     aria-label="Search manuscripts"
                     placeholder="Find a manuscript"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                   />
                 </label>
-                <label className="sort-select">
-                  <select
+                <Select
+                  value={sort}
+                  onValueChange={setSort}
+                  open={sortOpen && !closing}
+                  onOpenChange={setSortOpen}
+                >
+                  <SelectTrigger
+                    className="sort-control"
                     aria-label="Sort manuscripts"
-                    value={sort}
-                    onChange={(e) => setSort(e.target.value)}
                   >
-                    <option value="recent">Recently edited</option>
-                    <option value="title">Title, A to Z</option>
-                  </select>
-                  <ChevronDown size={13} />
-                </label>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="recent">Recently edited</SelectItem>
+                    <SelectItem value="title">Title, A to Z</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             {loading ? (
@@ -825,14 +952,14 @@ export default function App() {
                   <br />
                   There’s a place for it here.
                 </p>
-                <button
+                <Button
                   className="primary"
                   disabled={!ready}
-                  onClick={() => setModal("new")}
+                  onClick={event => openModal("new", event.currentTarget)}
                 >
                   Start your first manuscript
                   <ArrowRight size={16} />
-                </button>
+                </Button>
                 <button
                   className="text-button"
                   disabled={!ready}
@@ -851,11 +978,17 @@ export default function App() {
                 </button>
               </div>
             ) : (
-              <div className="book-grid">
+              <motion.div
+                className="book-grid"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+              >
                 {filtered.map((b, i) => {
                   const count = totalWords(b);
                   return (
-                    <button
+                    <motion.button
+                      whileHover={reduceMotion ? undefined : { y: -3 }}
+                      whileTap={reduceMotion ? undefined : { scale: 0.99 }}
                       className="book-card"
                       key={b.id}
                       onClick={() => openBook(b)}
@@ -881,23 +1014,21 @@ export default function App() {
                           {number(count)} words
                           <span>Edited {date(b.updatedAt)}</span>
                         </p>
-                        <div className="card-progress">
-                          <span
-                            style={{
-                              width: b.goal
-                                ? `${Math.min(100, (count / b.goal) * 100)}%`
-                                : "0%",
-                            }}
-                          />
-                        </div>
+                        <Progress
+                          className="card-progress"
+                          value={
+                            b.goal ? Math.min(100, (count / b.goal) * 100) : 0
+                          }
+                          aria-label={`${b.title} word goal`}
+                        />
                       </div>
-                    </button>
+                    </motion.button>
                   );
                 })}
                 <button
                   className="new-book-card"
                   disabled={!ready}
-                  onClick={() => setModal("new")}
+                  onClick={event => openModal("new", event.currentTarget)}
                 >
                   <span>
                     <Plus size={24} />
@@ -905,15 +1036,15 @@ export default function App() {
                   <h3>Something new</h3>
                   <p>Every idea deserves a page.</p>
                 </button>
-              </div>
+              </motion.div>
             )}
             <footer className="library-footer">
               <span>Independent by design. Inspired by NEO.</span>
               <span>No accounts. No subscriptions. Just words.</span>
             </footer>
-          </main>
+          </motion.main>
         ) : (
-          <main className="editor-layout">
+          <motion.main key={book.id} className="editor-layout" {...entrance}>
             <div className="manuscript-scroll">
               <article className="manuscript">
                 <div className="chapter-meta">
@@ -924,7 +1055,7 @@ export default function App() {
                     ).padStart(2, "0")}
                   </span>
                   <div className="chapter-controls">
-                    <button
+                    <IconButton
                       className="icon-button"
                       title="Move chapter earlier"
                       aria-label="Move chapter earlier"
@@ -932,8 +1063,8 @@ export default function App() {
                       onClick={() => moveChapter(-1)}
                     >
                       <ChevronLeft size={14} />
-                    </button>
-                    <button
+                    </IconButton>
+                    <IconButton
                       className="icon-button"
                       title="Move chapter later"
                       aria-label="Move chapter later"
@@ -941,7 +1072,7 @@ export default function App() {
                       onClick={() => moveChapter(1)}
                     >
                       <ChevronRight size={14} />
-                    </button>
+                    </IconButton>
                   </div>
                 </div>
                 <input
@@ -978,27 +1109,35 @@ export default function App() {
                 </button>
               </article>
             </div>
-            {notes && !focus && (
-              <aside className="notes-panel">
-                <div>
-                  <h2>Story notes</h2>
-                  <button
-                    className="icon-button"
-                    onClick={() => setNotes(false)}
-                    aria-label="Close story notes"
-                  >
-                    <X size={16} />
-                  </button>
-                </div>
-                <p>A place for the things you don’t want to forget.</p>
-                <textarea
-                  aria-label="Story notes"
-                  value={book.notes}
-                  onChange={(e) => patch({ notes: e.target.value })}
-                  placeholder="A character. A question. A loose thread…"
-                />
-              </aside>
-            )}
+            <AnimatePresence initial={false}>
+              {notes && !focus && (
+                <motion.aside
+                  className="notes-panel"
+                  key="notes"
+                  initial={{ opacity: 0, x: reduceMotion ? 0 : 12 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: reduceMotion ? 0 : 12 }}
+                >
+                  <div>
+                    <h2>Story notes</h2>
+                    <IconButton
+                      className="icon-button"
+                      onClick={() => setNotes(false)}
+                      aria-label="Close story notes"
+                    >
+                      <X size={16} />
+                    </IconButton>
+                  </div>
+                  <p>A place for the things you don’t want to forget.</p>
+                  <Textarea
+                    aria-label="Story notes"
+                    value={book.notes}
+                    onChange={(e) => patch({ notes: e.target.value })}
+                    placeholder="A character. A question. A loose thread…"
+                  />
+                </motion.aside>
+              )}
+            </AnimatePresence>
             <footer className="editor-footer">
               <span>
                 {number(words(chapter?.content ?? ""))} words in this chapter
@@ -1011,11 +1150,11 @@ export default function App() {
                   : "Your story, at your pace."}
               </span>
             </footer>
-          </main>
+          </motion.main>
         )}
       </div>
       {modal === "new" && (
-        <Modal title="A new beginning" onClose={() => setModal(null)}>
+        <Modal restoreFocusTo={modalOpener.current} title="A new beginning" onClose={() => setModal(null)}>
           <p className="dialog-intro">
             Give your story a name. You can always change it.
           </p>
@@ -1035,7 +1174,7 @@ export default function App() {
         </Modal>
       )}
       {modal === "details" && book && (
-        <Modal title="Book details" onClose={() => setModal(null)}>
+        <Modal restoreFocusTo={modalOpener.current} title="Book details" onClose={() => setModal(null)}>
           <BookForm
             book={book}
             onClose={() => setModal(null)}
@@ -1047,7 +1186,7 @@ export default function App() {
         </Modal>
       )}
       {modal === "history" && (
-        <Modal title="Earlier drafts" onClose={() => setModal(null)}>
+        <Modal restoreFocusTo={modalOpener.current} title="Earlier drafts" onClose={() => setModal(null)}>
           <p className="dialog-intro">
             Return to an earlier draft as a new manuscript. Your current writing
             stays intact.
@@ -1075,9 +1214,9 @@ export default function App() {
                     "This draft has no text yet."}
                 </pre>
               </div>
-              <button className="primary" onClick={restoreCopy}>
+              <Button className="primary" onClick={restoreCopy}>
                 Recover as a new manuscript
-              </button>
+              </Button>
             </>
           ) : (
             <div className="version-list">
@@ -1107,7 +1246,7 @@ export default function App() {
         </Modal>
       )}
       {modal === "help" && (
-        <Modal title="A quieter writing desk" onClose={() => setModal(null)}>
+        <Modal restoreFocusTo={modalOpener.current} title="A quieter writing desk" onClose={() => setModal(null)}>
           <p className="dialog-intro">
             NEO Minimal is an independent, local-first reimagining of Hugh
             Howey’s NEO. Built for a blank page and a little momentum.

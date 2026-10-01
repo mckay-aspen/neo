@@ -1,6 +1,6 @@
 # NEO Minimal
 
-A quiet, local-first desktop writing app. An independent fork of [NEO by Hugh Howey](https://github.com/hughhowey/neo), rebuilt with **Rust + Tauri 2** and **Bun + React + TypeScript**.
+A quiet, local-first desktop writing app. An independent fork of [NEO by Hugh Howey](https://github.com/hughhowey/neo), rebuilt with **Rust + Tauri 2** and **Bun + React + TypeScript**, with **shadcn/ui** components and **Motion** animation.
 
 The new application is in [`minimal/`](minimal). The original Electron source and Git history remain intact; its documentation is preserved in [README.upstream.md](README.upstream.md). This is an independent edition, not an official NEO release or a feature-complete replacement.
 
@@ -26,13 +26,14 @@ The bundle is written to `minimal/src-tauri/target/release/bundle/macos/`. Local
 
 ## A smaller writing experience
 
-- A calm library with search, sorting and simple typographic covers.
+- A midnight-blue library with search, sorting and simple typographic covers.
 - A plain-text writing page with explicit chapters, chapter reordering and live word counts.
 - Focus mode, light and dark themes, story notes and optional manuscript word goals.
 - Automatic local saves, visible save status and a retry action when saving fails.
 - Version history that recovers an earlier draft as a **separate manuscript**.
 - Plain text and Markdown import, and Markdown export through a native Save dialog.
-- Keyboard shortcuts and native accessible modal dialogs.
+- Keyboard shortcuts, shadcn/Radix dialogs, sorting controls, tooltips and progress indicators.
+- Subtle Motion transitions that respect reduced-motion preferences.
 
 No account, cloud service, telemetry, AI API key, or subscription is required. Fonts and icons ship with the application. The sample manuscript is optional and can be edited freely.
 
@@ -69,4 +70,4 @@ Tests exercise save races, rejected writes, journal recovery, corrupt data, stal
 
 ## License and attribution
 
-MIT, with Hugh Howey’s original [copyright and license](LICENSE) retained. NEO Minimal is independently developed and is not endorsed by Hugh Howey. The bundled Lora font includes its license in `minimal/public/fonts/`. The original NEO application icon is retained from the MIT-licensed project.
+MIT, with Hugh Howey’s original [copyright and license](LICENSE) retained. NEO Minimal is independently developed and is not endorsed by Hugh Howey. The bundled Lora font includes its license in `minimal/public/fonts/`. The original NEO application icon is retained from the MIT-licensed project. Shadcn/ui source and UI dependency notices are preserved in `minimal/licenses/` and bundled with the desktop app. See [the interface guide](docs/INTERFACE.md) for palette and component details.

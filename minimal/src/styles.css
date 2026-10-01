@@ -5,37 +5,59 @@
   font-weight: 400;
   font-display: swap;
 }
-:root {
+:root,
+:root[data-theme="dark"] {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  color: #343a34;
-  background: #faf9f6;
+  color-scheme: dark;
+  color: #e6edf7;
+  background: #090f1e;
   font-synthesis: none;
   font-size: 14px;
-  --bg: #faf9f6;
-  --side: #f1f1eb;
-  --surface: #fffefa;
-  --text: #343a34;
-  --muted: #757b72;
-  --line: #e4e6dd;
-  --accent: #485f4a;
-  --accent-hover: #354b38;
-  --active: #e4e8dd;
-  --soft: #eeefe8;
-  --editor: #fbfaf7;
+  --bg: #090f1e;
+  --side: #0c1425;
+  --surface: #111d32;
+  --elevated: #172640;
+  --text: #e6edf7;
+  --muted: #97a8c2;
+  --line: #26364f;
+  --control-line: #4a6080;
+  --accent: #9bb7ff;
+  --accent-hover: #b4c9ff;
+  --on-accent: #101a2e;
+  --active: #1b2d4a;
+  --soft: #142139;
+  --editor: #0b1323;
+  --success: #83cbbf;
+  --warm: #ddb97b;
+  --danger: #ffb8ae;
+  --danger-bg: #3a202a;
+  --selection: #284678;
+  --shadow: #03071066;
 }
-:root[data-theme="dark"] {
-  color-scheme: dark;
-  --bg: #202521;
-  --side: #1b211c;
-  --surface: #272e27;
-  --text: #e0e3d9;
-  --muted: #a4af9e;
-  --line: #394137;
-  --accent: #b3c6a5;
-  --accent-hover: #c4d6b7;
-  --active: #333e30;
-  --soft: #2c352b;
-  --editor: #202521;
+:root[data-theme="light"] {
+  color-scheme: light;
+  color: #1b2a41;
+  background: #f3f6fb;
+  --bg: #f3f6fb;
+  --side: #eaf0f8;
+  --surface: #ffffff;
+  --elevated: #ffffff;
+  --text: #1b2a41;
+  --muted: #536680;
+  --line: #ced9e8;
+  --control-line: #8a9bb2;
+  --accent: #3158a3;
+  --accent-hover: #244580;
+  --on-accent: #ffffff;
+  --active: #dce7f8;
+  --soft: #e5edf8;
+  --editor: #f8faff;
+  --success: #286d64;
+  --warm: #8c6126;
+  --danger: #943e3b;
+  --danger-bg: #fcebe9;
+  --selection: #d5e2ff;
+  --shadow: #18345414;
 }
 * {
   box-sizing: border-box;
@@ -44,6 +66,11 @@ body {
   margin: 0;
   color: var(--text);
   background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+}
+::selection {
+  background: var(--selection);
+  color: var(--text);
 }
 button,
 input,
@@ -53,20 +80,15 @@ select {
 }
 button {
   cursor: pointer;
-  color: inherit;
-}
-button {
-  border: 0;
-  background: none;
 }
 button:disabled {
   opacity: 0.4;
   cursor: default;
 }
-button:focus-visible,
-input:focus-visible,
-textarea:focus-visible,
-select:focus-visible {
+button:not([data-slot]):focus-visible,
+input:not([data-slot]):focus-visible,
+textarea:not([data-slot]):focus-visible,
+select:not([data-slot]):focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 4px;
 }
@@ -81,11 +103,17 @@ textarea,
 select {
   -webkit-tap-highlight-color: transparent;
 }
-button {
+.icon-button,
+.nav-link,
+.sidebar-action,
+.primary,
+.secondary,
+.text-button,
+.new-book-card {
   transition:
     background 0.15s,
     color 0.15s,
-    transform 0.15s;
+    border-color 0.15s;
 }
 h1,
 h2,
@@ -95,9 +123,6 @@ p {
 }
 button svg {
   flex-shrink: 0;
-}
-button:not(:disabled):active {
-  transform: translateY(1px);
 }
 .app {
   display: flex;
@@ -124,6 +149,7 @@ button:not(:disabled):active {
   font-size: 22px;
   letter-spacing: 1.5px;
   font-weight: 550;
+  color: var(--text);
 }
 .brand-mark {
   font-family: Georgia, serif;
@@ -144,7 +170,7 @@ button:not(:disabled):active {
 }
 .brand-edition {
   display: block;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 500;
   letter-spacing: 3.6px;
   margin-top: 4px;
@@ -187,7 +213,7 @@ button:not(:disabled):active {
 .sidebar-quote > span {
   font-family: Georgia, serif;
   font-size: 40px;
-  color: #a5ad98;
+  color: var(--warm);
   line-height: 1;
 }
 .sidebar-quote p {
@@ -209,12 +235,12 @@ button:not(:disabled):active {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 11px;
+  font-size: 12px;
 }
 .status-dot {
   height: 5px;
   width: 5px;
-  background: #7f9776;
+  background: var(--success);
   border-radius: 50%;
   display: inline-block;
   flex-shrink: 0;
@@ -233,7 +259,7 @@ button:not(:disabled):active {
   flex-shrink: 0;
 }
 .sidebar-footer > span {
-  font-size: 9px;
+  font-size: 10px;
   color: var(--muted);
   margin-right: auto;
 }
@@ -268,12 +294,13 @@ button:not(:disabled):active {
   padding: 0 42px;
   flex-shrink: 0;
   gap: 20px;
+  background: var(--bg);
 }
 .breadcrumb {
   display: flex;
   align-items: center;
   gap: 13px;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--muted);
   min-width: 0;
 }
@@ -316,7 +343,7 @@ button:not(:disabled):active {
   gap: 20px;
 }
 .eyebrow {
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 550;
   letter-spacing: 1.9px;
   color: var(--muted);
@@ -342,9 +369,9 @@ button:not(:disabled):active {
   gap: 10px;
   border-radius: 5px;
   background: var(--accent);
-  color: var(--bg);
-  font-size: 11px;
-  font-weight: 500;
+  color: var(--on-accent);
+  font-size: 12px;
+  font-weight: 600;
   padding: 13px 17px;
   white-space: nowrap;
 }
@@ -352,10 +379,12 @@ button:not(:disabled):active {
   background: var(--accent-hover);
 }
 .secondary {
-  border: 1px solid var(--line);
+  border: 1px solid var(--control-line);
   border-radius: 5px;
   padding: 12px 17px;
-  font-size: 11px;
+  font-size: 12px;
+  color: var(--text);
+  background: transparent;
 }
 .secondary:hover {
   background: var(--soft);
@@ -390,8 +419,8 @@ button:not(:disabled):active {
   color: var(--muted);
 }
 .search-field input {
-  width: 148px;
-  font-size: 10px;
+  width: 166px;
+  font-size: 12px;
   border: 0;
   background: none;
   outline-offset: 6px;
@@ -409,7 +438,7 @@ button:not(:disabled):active {
   appearance: none;
   background: transparent;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 12px;
   border: 0;
   padding: 5px 18px 5px 0;
   cursor: pointer;
@@ -429,7 +458,7 @@ button:not(:disabled):active {
   justify-content: center;
 }
 .empty-state > .eyebrow {
-  font-size: 8px;
+  font-size: 10px;
   letter-spacing: 1.8px;
   margin-top: 31px;
 }
@@ -441,7 +470,7 @@ button:not(:disabled):active {
   letter-spacing: -0.5px;
 }
 .empty-state p {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--muted);
   line-height: 1.9;
   margin-top: 13px;
@@ -454,7 +483,7 @@ button:not(:disabled):active {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--muted);
   padding: 10px 0;
 }
@@ -463,7 +492,7 @@ button:not(:disabled):active {
 }
 .empty-state > .text-button {
   margin-top: 9px;
-  font-size: 10px;
+  font-size: 12px;
 }
 .paper-stack {
   position: relative;
@@ -473,10 +502,10 @@ button:not(:disabled):active {
 .paper-stack > div {
   position: absolute;
   inset: 0;
-  border: 1px solid #d8ddd0;
+  border: 1px solid var(--control-line);
   border-radius: 2px;
   background: var(--surface);
-  box-shadow: 0 2px 6px #28392305;
+  box-shadow: 0 6px 18px var(--shadow);
 }
 .paper-stack > div:nth-child(1) {
   transform: rotate(-10deg) translate(-9px, 2px);
@@ -515,7 +544,7 @@ button:not(:disabled):active {
   gap: 16px;
   border-top: 1px solid var(--line);
   padding: 22px 0;
-  font-size: 9px;
+  font-size: 10px;
   color: var(--muted);
 }
 .book-grid {
@@ -528,15 +557,16 @@ button:not(:disabled):active {
   text-align: left;
   padding: 0;
   border-radius: 5px;
+  color: var(--text);
 }
 .book-card:hover .book-cover {
   transform: translateY(-4px);
-  box-shadow: 0 12px 22px #23322318;
+  box-shadow: 0 14px 28px var(--shadow);
 }
 .book-cover {
   min-height: 240px;
   aspect-ratio: 0.8;
-  background: #dce2d4;
+  background: #162940;
   border-radius: 2px 5px 5px 2px;
   position: relative;
   padding: 27px 24px 23px;
@@ -544,25 +574,34 @@ button:not(:disabled):active {
   flex-direction: column;
   align-items: center;
   text-align: center;
-  color: #3f503e;
-  transition: 0.2s;
+  color: #e2eaf5;
+  --cover-detail: #ddb97b;
+  border: 1px solid #526986;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
   overflow: hidden;
 }
 .book-cover.color-1 {
-  background: #e9dfd2;
-  color: #695540;
+  background: #243348;
+  color: #e6edf7;
+  --cover-detail: #b7c8df;
 }
 .book-cover.color-2 {
-  background: #dce3e5;
-  color: #475963;
+  background: #17343b;
+  color: #e4f0f1;
+  --cover-detail: #b6d2d6;
+  border-color: #46656c;
 }
 .book-cover.color-3 {
-  background: #e5dfe8;
-  color: #65576f;
+  background: #22314b;
+  color: #e6edf7;
+  --cover-detail: #cad7ec;
 }
 .cover-top {
-  font-size: 7px;
-  letter-spacing: 1.8px;
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  color: var(--cover-detail);
 }
 .cover-center {
   margin: auto 0;
@@ -581,13 +620,14 @@ button:not(:disabled):active {
   display: block;
   width: 24px;
   height: 1px;
-  background: currentColor;
-  opacity: 0.35;
+  background: var(--cover-detail);
+  opacity: 0.65;
   margin: 0 auto;
 }
 .cover-author {
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 1px;
+  color: var(--cover-detail);
 }
 .cover-spine {
   position: absolute;
@@ -595,8 +635,8 @@ button:not(:disabled):active {
   top: 0;
   bottom: 0;
   width: 1px;
-  background: #00000010;
-  box-shadow: -4px 0 4px #00000012;
+  background: #dce8ff1a;
+  box-shadow: -4px 0 5px #03091733;
 }
 .book-card-info {
   padding-top: 17px;
@@ -620,7 +660,7 @@ button:not(:disabled):active {
 .book-card-info p {
   display: flex;
   justify-content: space-between;
-  font-size: 9px;
+  font-size: 10px;
   color: var(--muted);
   margin-top: 9px;
   gap: 4px;
@@ -634,10 +674,10 @@ button:not(:disabled):active {
 .card-progress span {
   display: block;
   height: 2px;
-  background: #8fa284;
+  background: var(--success);
 }
 .new-book-card {
-  border: 1px dashed #d4d9cc;
+  border: 1px dashed var(--control-line);
   min-height: 240px;
   aspect-ratio: 0.8;
   border-radius: 5px;
@@ -666,7 +706,7 @@ button:not(:disabled):active {
   margin-top: 20px;
 }
 .new-book-card p {
-  font-size: 9px;
+  font-size: 12px;
   margin-top: 10px;
 }
 .back-link {
@@ -674,7 +714,7 @@ button:not(:disabled):active {
   gap: 8px;
   align-items: center;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
   margin: 40px 10px 0;
   padding: 0;
 }
@@ -682,7 +722,7 @@ button:not(:disabled):active {
   margin: 32px 12px 26px;
 }
 .sidebar-book .eyebrow {
-  font-size: 8px;
+  font-size: 10px;
 }
 .sidebar-book h2 {
   font-family: Lora, serif;
@@ -727,20 +767,20 @@ button:not(:disabled):active {
   background: var(--active);
 }
 .chapter-number {
-  font-size: 9px;
+  font-size: 10px;
   line-height: 18px;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
 .chapter-name {
-  font-size: 11px;
+  font-size: 12px;
   line-height: 18px;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .chapter-name small {
   display: block;
-  font-size: 9px;
+  font-size: 10px;
   color: var(--muted);
   font-weight: 400;
   margin-top: 3px;
@@ -749,7 +789,7 @@ button:not(:disabled):active {
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 11px;
+  font-size: 12px;
   text-align: left;
   color: var(--muted);
   padding: 12px;
@@ -774,7 +814,7 @@ button:not(:disabled):active {
 .progress-label button {
   padding: 0;
   color: var(--muted);
-  font-size: 9px;
+  font-size: 10px;
 }
 .progress-track {
   height: 3px;
@@ -784,12 +824,12 @@ button:not(:disabled):active {
 }
 .progress-track > span {
   display: block;
-  background: #8ca27e;
+  background: var(--success);
   height: 3px;
   border-radius: 10px;
 }
 .goal-caption {
-  font-size: 9px;
+  font-size: 10px;
   margin-top: 9px;
   color: var(--muted);
 }
@@ -797,7 +837,7 @@ button:not(:disabled):active {
   margin: 15px -12px -13px;
 }
 .draft-tag {
-  font-size: 8px;
+  font-size: 10px;
   letter-spacing: 1px;
   border: 1px solid var(--line);
   border-radius: 3px;
@@ -807,20 +847,20 @@ button:not(:disabled):active {
   display: flex;
   align-items: center;
   gap: 5px;
-  font-size: 9px;
+  font-size: 10px;
   color: var(--muted);
   margin-right: 8px;
 }
 .save-indicator svg {
-  color: #839b77;
+  color: var(--success);
 }
 .save-indicator.error {
-  color: #ae5944;
+  color: var(--danger);
 }
 .error-dot {
   width: 5px;
   height: 5px;
-  background: #ae5944;
+  background: var(--danger);
   border-radius: 50%;
 }
 .toolbar-separator {
@@ -832,7 +872,7 @@ button:not(:disabled):active {
   display: flex;
   align-items: center;
   gap: 7px;
-  font-size: 10px;
+  font-size: 12px;
   color: var(--muted);
   margin-left: 10px;
   padding: 6px;
@@ -886,7 +926,7 @@ button:not(:disabled):active {
   align-items: center;
   gap: 13px;
   margin: 27px 0 35px;
-  color: #a2ad97;
+  color: var(--warm);
 }
 .chapter-ornament span:nth-child(odd) {
   height: 1px;
@@ -907,14 +947,14 @@ button:not(:disabled):active {
   width: 100%;
   min-height: 400px;
   font-family: Lora, Georgia, serif;
-  font-size: 17px;
+  font-size: 18px;
   line-height: 1.95;
   letter-spacing: 0.02px;
   caret-color: var(--accent);
 }
 .prose-editor::placeholder {
   color: var(--muted);
-  opacity: 0.65;
+  opacity: 1;
 }
 .chapter-end {
   display: flex;
@@ -922,7 +962,7 @@ button:not(:disabled):active {
   justify-content: center;
   gap: 14px;
   margin-top: 45px;
-  font-size: 7px;
+  font-size: 10px;
   letter-spacing: 2px;
   color: var(--muted);
 }
@@ -934,7 +974,7 @@ button:not(:disabled):active {
 .add-next {
   display: flex;
   margin: 20px auto 0;
-  font-size: 10px;
+  font-size: 12px;
 }
 .notes-panel {
   width: 272px;
@@ -955,7 +995,7 @@ button:not(:disabled):active {
   font-weight: 500;
 }
 .notes-panel > p {
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.7;
   color: var(--muted);
   margin-top: 12px;
@@ -985,7 +1025,7 @@ button:not(:disabled):active {
   padding: 0 32px;
   background: var(--bg);
   border-top: 1px solid var(--line);
-  font-size: 9px;
+  font-size: 10px;
   color: var(--muted);
 }
 .footer-dot {
@@ -1001,18 +1041,14 @@ button:not(:disabled):active {
 .dialog {
   width: 440px;
   max-width: calc(100vw - 40px);
-  background: var(--surface);
+  background: var(--elevated);
   color: var(--text);
   border: 1px solid var(--line);
   border-radius: 12px;
   padding: 27px 30px 30px;
-  box-shadow: 0 20px 80px #10180e25;
+  box-shadow: 0 24px 90px var(--shadow);
   max-height: 85vh;
   overflow: auto;
-}
-.dialog::backdrop {
-  background: #17241640;
-  backdrop-filter: blur(3px);
 }
 .dialog-header {
   display: flex;
@@ -1028,20 +1064,20 @@ button:not(:disabled):active {
   letter-spacing: -0.5px;
 }
 .dialog-intro {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--muted);
   line-height: 1.8;
   margin-bottom: 23px;
 }
 .dialog form label {
   display: block;
-  font-size: 11px;
+  font-size: 12px;
   margin: 19px 0;
 }
 .dialog label input,
 .dialog label textarea {
   display: block;
-  border: 1px solid var(--line);
+  border: 1px solid var(--control-line);
   border-radius: 5px;
   background: var(--bg);
   padding: 12px;
@@ -1052,12 +1088,12 @@ button:not(:disabled):active {
 .dialog label small {
   display: block;
   margin-top: 6px;
-  font-size: 9px;
+  font-size: 10px;
   color: var(--muted);
 }
 .optional {
   color: var(--muted);
-  font-size: 9px;
+  font-size: 10px;
   margin-left: 5px;
 }
 .dialog-actions {
@@ -1075,20 +1111,20 @@ button:not(:disabled):active {
   justify-content: space-between;
   border-bottom: 1px solid var(--line);
   padding: 12px 0;
-  font-size: 11px;
+  font-size: 12px;
 }
 .shortcuts dd {
   font-size: 10px;
   color: var(--muted);
 }
 .help-copy {
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.8;
   color: var(--muted);
   margin: 16px 0;
 }
 .help-credit {
-  font-size: 9px;
+  font-size: 10px;
   color: var(--muted);
   border-top: 1px solid var(--line);
   padding-top: 18px;
@@ -1102,14 +1138,14 @@ button:not(:disabled):active {
   text-align: left;
   border-bottom: 1px solid var(--line);
   padding: 14px 0;
-  font-size: 11px;
+  font-size: 12px;
 }
 .version-list > button > span {
   flex: 1;
 }
 .version-list small {
   display: block;
-  font-size: 9px;
+  font-size: 10px;
   color: var(--muted);
   margin-top: 5px;
 }
@@ -1138,12 +1174,12 @@ button:not(:disabled):active {
 }
 .muted {
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.8;
 }
 .history-error {
-  font-size: 11px;
-  color: #a45239;
+  font-size: 12px;
+  color: var(--danger);
 }
 .notice {
   position: absolute;
@@ -1158,9 +1194,9 @@ button:not(:disabled):active {
   border: 1px solid var(--line);
   border-radius: 7px;
   background: var(--surface);
-  box-shadow: 0 5px 25px #17231613;
+  box-shadow: 0 8px 32px var(--shadow);
   padding: 13px 17px;
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.6;
   max-width: 90%;
   min-width: 320px;
@@ -1176,10 +1212,10 @@ button:not(:disabled):active {
   gap: 12px;
   align-items: center;
   padding: 12px 24px;
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.5;
-  background: #f8e8df;
-  color: #833f2c;
+  background: var(--danger-bg);
+  color: var(--danger);
   flex-shrink: 0;
 }
 .error-banner span {
@@ -1259,7 +1295,7 @@ button:not(:disabled):active {
     padding: 22px 17px;
   }
   .book-card-info p {
-    font-size: 8px;
+    font-size: 10px;
   }
   .book-card-info p span {
     display: none;
@@ -1332,7 +1368,7 @@ button:not(:disabled):active {
     bottom: 40px;
     right: 0;
     width: 270px;
-    box-shadow: -8px 0 25px #00000008;
+    box-shadow: -8px 0 25px var(--shadow);
   }
   .editor-footer {
     padding: 0 20px;
@@ -1346,4 +1382,32 @@ button:not(:disabled):active {
     animation: none !important;
     transition: none !important;
   }
+}
+
+/* Keep chapter navigation useful at the desktop window's minimum height. */
+.writing .sidebar {
+  padding-top: 26px;
+}
+.writing .back-link {
+  margin-top: 26px;
+}
+.writing .sidebar-book {
+  margin: 24px 12px 18px;
+}
+.writing .chapter-list {
+  flex: 1;
+  max-height: none;
+  min-height: 88px;
+}
+.writing .chapter-link {
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+.writing .chapter-list + .sidebar-action {
+  margin-top: 12px;
+  padding-top: 14px;
+}
+.writing .sidebar-bottom {
+  padding-top: 18px;
+  padding-bottom: 18px;
 }

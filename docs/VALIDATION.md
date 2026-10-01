@@ -24,3 +24,9 @@ A native Quit test exposed macOS's predefined Quit command bypassing the asynchr
 Windows and Linux runtime behavior has not been manually verified. CI includes core build/tests on all three desktop platforms and a macOS desktop build, but added workflows are not evidence of a successful remote run. No full original-NEO library migration or EPUB/Word/PDF compatibility is claimed. Actual power loss, physical disk failure, and weeks-long large-manuscript sessions have not been simulated. Recovery is local to the same disk; maintain an independent backup.
 
 Browser preview storage is separate from desktop storage and subject to browser quotas. Desktop uses Rust files and a native recovery journal.
+
+## Midnight UI update
+
+The shadcn/Motion update passed the production build and the same 21 Bun / 14 Rust tests. The browser preview was visually inspected in midnight mode, including the library, editor, notes panel and new-manuscript dialog. A manuscript was created through the new form; the Radix sort menu was operated with arrow keys and Enter, returning focus to its trigger. With notes open, the manuscript textarea's measured client height matched its scroll height, confirming no hidden overflow for the tested sample. Dialog/portal integration, stable editor identity and reduced-motion handling were reviewed in source.
+
+The final optimized macOS bundle was launched in midnight mode. Opening New manuscript focused the title field; Escape dismissed the dialog and returned keyboard focus to the New manuscript button. The packaged app includes the upstream, font, shadcn and UI dependency license notices.
