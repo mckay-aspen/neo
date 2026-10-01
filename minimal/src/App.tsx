@@ -18,12 +18,10 @@ import {
   History,
   Library,
   LoaderCircle,
-  Moon,
   PanelLeftClose,
   Plus,
   Search,
   Settings2,
-  Sun,
   Upload,
   X,
 } from "lucide-react";
@@ -53,6 +51,7 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { TypewriterQuote } from "@/components/typewriter-quote";
 import { invoke } from "@tauri-apps/api/core";
 import {
   useLibrary,
@@ -262,13 +261,6 @@ export default function App() {
   };
   const [focus, setFocus] = useState(false);
   const [notes, setNotes] = useState(false);
-  const [dark, setDark] = useState(() => {
-    try {
-      return localStorage.getItem("neo-minimal-theme-v2") !== "light";
-    } catch {
-      return true;
-    }
-  });
   const [notice, setNotice] = useState("");
   const [closing, setClosing] = useState(false);
   const historyRequest = useRef(0);
@@ -288,15 +280,6 @@ export default function App() {
   flushRef.current = flush;
   canCloseWithoutFlush.current = !ready && library.unsavedCount === 0;
 
-  useEffect(() => {
-    document.documentElement.dataset.theme = dark ? "dark" : "light";
-    document.documentElement.classList.toggle("dark", dark);
-    try {
-      localStorage.setItem("neo-minimal-theme-v2", dark ? "dark" : "light");
-    } catch {
-      /* Theme preference is optional. */
-    }
-  }, [dark]);
   useEffect(() => {
     if (!isDesktop) return;
     let unlisten: (() => void) | undefined;
@@ -719,14 +702,7 @@ export default function App() {
                   <span>Import manuscript</span>
                 </button>
               </nav>
-              <div className="sidebar-quote">
-                <span>“</span>
-                <p>
-                  There is no greater agony than bearing an untold story inside
-                  you.
-                </p>
-                <small>— Maya Angelou</small>
-              </div>
+              <TypewriterQuote />
               <div className="sidebar-bottom">
                 <div className="local-label">
                   <span className="status-dot" />
@@ -742,13 +718,6 @@ export default function App() {
           )}
           <div className="sidebar-footer">
             <span>Made for the writing.</span>
-            <IconButton
-              className="icon-button"
-              aria-label={dark ? "Use light theme" : "Use dark theme"}
-              onClick={() => setDark((v) => !v)}
-            >
-              {dark ? <Sun size={16} /> : <Moon size={16} />}
-            </IconButton>
             <IconButton
               className="icon-button"
               aria-label="Help and keyboard shortcuts"

@@ -27,8 +27,9 @@ The bundle is written to `minimal/src-tauri/target/release/bundle/macos/`. Local
 ## A smaller writing experience
 
 - A midnight-blue library with search, sorting and simple typographic covers.
+- Rotating writing quotes with a typewriter animation, pause/next controls and a static reduced-motion experience.
 - A plain-text writing page with explicit chapters, chapter reordering and live word counts.
-- Focus mode, light and dark themes, story notes and optional manuscript word goals.
+- Focus mode, a permanent midnight-blue theme, story notes and optional manuscript word goals.
 - Automatic local saves, visible save status and a retry action when saving fails.
 - Version history that recovers an earlier draft as a **separate manuscript**.
 - Plain text and Markdown import, and Markdown export through a native Save dialog.

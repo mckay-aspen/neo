@@ -5,8 +5,7 @@
   font-weight: 400;
   font-display: swap;
 }
-:root,
-:root[data-theme="dark"] {
+:root {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   color-scheme: dark;
   color: #e6edf7;
@@ -33,31 +32,6 @@
   --danger-bg: #3a202a;
   --selection: #284678;
   --shadow: #03071066;
-}
-:root[data-theme="light"] {
-  color-scheme: light;
-  color: #1b2a41;
-  background: #f3f6fb;
-  --bg: #f3f6fb;
-  --side: #eaf0f8;
-  --surface: #ffffff;
-  --elevated: #ffffff;
-  --text: #1b2a41;
-  --muted: #536680;
-  --line: #ced9e8;
-  --control-line: #8a9bb2;
-  --accent: #3158a3;
-  --accent-hover: #244580;
-  --on-accent: #ffffff;
-  --active: #dce7f8;
-  --soft: #e5edf8;
-  --editor: #f8faff;
-  --success: #286d64;
-  --warm: #8c6126;
-  --danger: #943e3b;
-  --danger-bg: #fcebe9;
-  --selection: #d5e2ff;
-  --shadow: #18345414;
 }
 * {
   box-sizing: border-box;
@@ -132,6 +106,7 @@ button svg {
 }
 .sidebar {
   width: 244px;
+  overflow-y: auto;
   flex-shrink: 0;
   background: var(--side);
   border-right: 1px solid var(--line);
@@ -205,27 +180,6 @@ button svg {
   background: var(--surface);
   padding: 2px 6px;
   border-radius: 4px;
-}
-.sidebar-quote {
-  padding: 65px 14px 30px;
-  color: var(--muted);
-}
-.sidebar-quote > span {
-  font-family: Georgia, serif;
-  font-size: 40px;
-  color: var(--warm);
-  line-height: 1;
-}
-.sidebar-quote p {
-  font-family: Lora, Georgia, serif;
-  font-size: 14px;
-  line-height: 1.8;
-}
-.sidebar-quote small {
-  display: block;
-  font-size: 10px;
-  margin-top: 16px;
-  letter-spacing: 0.3px;
 }
 .sidebar-bottom {
   margin-top: auto;
@@ -1312,6 +1266,11 @@ button svg {
   .chapter-title {
     font-size: 31px;
   }
+}
+@media (max-height: 680px) {
+  .sidebar { padding-top: 24px; }
+  .sidebar-section { margin-top: 32px; }
+  .sidebar-bottom { padding-top: 16px; padding-bottom: 16px; }
 }
 @media (max-width: 820px) {
   .sidebar {

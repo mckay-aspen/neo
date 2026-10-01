@@ -1,0 +1,83 @@
+.sidebar-quote {
+  padding: 54px 14px 22px;
+  color: var(--muted);
+}
+.sidebar-quote .quote-mark {
+  display: block;
+  font-family: Georgia, serif;
+  font-size: 40px;
+  color: var(--warm);
+  line-height: 1;
+  margin-bottom: 4px;
+}
+.quote-stage {
+  display: grid;
+}
+.quote-stage p {
+  grid-area: 1 / 1;
+  font-family: Lora, Georgia, serif;
+  font-size: 14px;
+  line-height: 1.8;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+.quote-measure {
+  visibility: hidden;
+  pointer-events: none;
+}
+.quote-caret,
+.quote-caret-space {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  margin-left: 3px;
+  vertical-align: -0.13em;
+}
+.quote-caret {
+  background: var(--warm);
+  box-shadow: 0 0 8px rgb(221 185 123 / 22%);
+}
+.sidebar-quote .quote-author {
+  display: block;
+  font-size: 10px;
+  line-height: 18px;
+  margin-top: 14px;
+  letter-spacing: 0.3px;
+}
+.quote-controls {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-top: 12px;
+}
+.quote-position {
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: var(--warm);
+  margin-right: auto;
+  font-variant-numeric: tabular-nums;
+}
+.quote-position > span {
+  color: var(--muted);
+}
+[data-slot="button"].quote-control {
+  width: 28px;
+  height: 28px;
+  color: var(--muted);
+}
+[data-slot="button"].quote-control:hover {
+  color: var(--accent);
+  background: var(--active);
+}
+@media (max-height: 720px) {
+  .sidebar-quote {
+    padding-top: 24px;
+  }
+}
+@media (max-height: 680px) {
+  .sidebar-quote { padding-top: 18px; padding-bottom: 12px; }
+  .sidebar-quote .quote-mark { font-size: 32px; margin-bottom: 0; }
+  .quote-stage p { font-size: 13px; line-height: 1.65; }
+  .sidebar-quote .quote-author { margin-top: 10px; }
+  .quote-controls { margin-top: 8px; }
+}

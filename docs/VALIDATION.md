@@ -30,3 +30,9 @@ Browser preview storage is separate from desktop storage and subject to browser 
 The shadcn/Motion update passed the production build and the same 21 Bun / 14 Rust tests. The browser preview was visually inspected in midnight mode, including the library, editor, notes panel and new-manuscript dialog. A manuscript was created through the new form; the Radix sort menu was operated with arrow keys and Enter, returning focus to its trigger. With notes open, the manuscript textarea's measured client height matched its scroll height, confirming no hidden overflow for the tested sample. Dialog/portal integration, stable editor identity and reduced-motion handling were reviewed in source.
 
 The final optimized macOS bundle was launched in midnight mode. Opening New manuscript focused the title field; Escape dismissed the dialog and returned keyboard focus to the New manuscript button. The packaged app includes the upstream, font, shadcn and UI dependency license notices.
+
+## Dark-only quote update
+
+The theme toggle, light palette and theme-preference handling were removed. Browser checks confirmed the midnight background and no theme controls. The typewriter sequence advanced automatically; Pause held the exact partial text, Next showed a complete quote while paused, and the sequence wrapped from quote four to quote one. At a 900 × 598 content viewport (the minimum desktop window minus its title bar), the sidebar and its content both measured 598px with the footer fully visible. A review caught and fixed pausing during the exit transition so it cannot leave a quote invisible. Reduced-motion behavior, hidden-document suspension and unmount cleanup were reviewed in source. The 21 Bun tests still pass.
+
+The optimized native app was rebuilt and opened with the theme control absent and the quote sequence visibly advancing. Production build, archive integrity and bundled license checks passed.
