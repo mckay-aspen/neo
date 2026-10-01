@@ -1,0 +1,26 @@
+# Validation
+
+Validated on macOS Apple Silicon with Bun 1.3.14 and Rust 1.98.1. Application version: 0.1.0.
+
+## Automated checks
+
+- TypeScript strict type checking and Vite production build passed.
+- Bun: **21 tests passed, 81 assertions**. Coverage includes edits during saves, concurrent flushes, rejected writes, slow journal coalescing, crash recovery, conflict recovery, malformed storage and manuscript conversion.
+- Rust: **14 tests passed**. Coverage includes atomic persistence, optimistic revisions, unsafe paths, symlinks, corrupt data, exclusive library locking, journal recovery, rolling backups, checkpoint cadence, history and trash retention.
+- Desktop Clippy with warnings denied passed.
+- Both native debug and optimized release macOS application bundles built.
+- ZIP integrity checked. The optimized app contains an arm64 Mach-O executable; it is locally ad-hoc signed and is not Apple-notarized.
+
+## Interactive checks
+
+The browser preview was opened and visually inspected. Verified empty library, optional sample creation, chapter selection/editing, notes, focus mode, earlier-draft preview and recovery as a separate manuscript. Confirmed the original manuscript remained in the library.
+
+The native macOS app was launched and verified independently of the browser preview. Confirmed local persistence and reopening, then exported Markdown using the native Save dialog and inspected the resulting text file.
+
+A native Quit test exposed macOS's predefined Quit command bypassing the asynchronous save wait; the draft journal successfully recovered the text. The implementation was corrected to use a custom Quit menu item. In the optimized release, typing a sentence and immediately pressing Cmd+Q committed the latest text and left an empty pending-draft journal. The committed chapter was inspected on disk.
+
+## Boundaries
+
+Windows and Linux runtime behavior has not been manually verified. CI includes core build/tests on all three desktop platforms and a macOS desktop build, but added workflows are not evidence of a successful remote run. No full original-NEO library migration or EPUB/Word/PDF compatibility is claimed. Actual power loss, physical disk failure, and weeks-long large-manuscript sessions have not been simulated. Recovery is local to the same disk; maintain an independent backup.
+
+Browser preview storage is separate from desktop storage and subject to browser quotas. Desktop uses Rust files and a native recovery journal.

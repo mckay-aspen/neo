@@ -26,3 +26,9 @@ pocket/www/locales/
 
 # working files beside the repo, never part of it
 Claude outputs/
+
+# NEO Minimal Rust build and local test data
+minimal/src-tauri/target/
+minimal/.test-data/
+minimal/test-results/
+minimal/playwright-report/
