@@ -1,0 +1,145 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--bg);
+  --color-foreground: var(--text);
+  --color-card: var(--surface);
+  --color-card-foreground: var(--text);
+  --color-popover: var(--elevated);
+  --color-popover-foreground: var(--text);
+  --color-primary: var(--accent);
+  --color-primary-foreground: var(--on-accent);
+  --color-secondary: var(--active);
+  --color-secondary-foreground: var(--text);
+  --color-muted: var(--soft);
+  --color-muted-foreground: var(--muted);
+  --color-accent: var(--active);
+  --color-accent-foreground: var(--text);
+  --color-destructive: var(--danger);
+  --color-border: var(--line);
+  --color-input: var(--line);
+  --color-ring: var(--accent);
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Shared component polish. The manuscript remains a plain native text surface. */
+[data-slot="dialog-overlay"] {
+  background: rgb(2 6 16 / 72%);
+  backdrop-filter: blur(7px);
+}
+[data-slot="dialog-content"].dialog {
+  margin: 0;
+  display: block;
+}
+[data-slot="dialog-content"] .dialog-header {
+  margin-bottom: 14px;
+}
+[data-slot="dialog-title"] {
+  color: var(--text);
+}
+[data-slot="select-trigger"].sort-control {
+  width: 168px;
+  height: 34px;
+  font-size: 11px;
+  box-shadow: none;
+  background: var(--surface);
+  color: var(--muted);
+}
+[data-slot="select-content"] {
+  z-index: 70;
+}
+[data-slot="select-item"] {
+  font-size: 12px;
+}
+[data-slot="tooltip-content"] {
+  z-index: 80;
+  background: var(--elevated);
+  color: var(--text);
+  border: 1px solid var(--line);
+  font-size: 11px;
+  padding: 7px 10px;
+}
+[data-slot="tooltip-content"] svg {
+  fill: var(--elevated);
+  background: var(--elevated);
+}
+[data-slot="progress-indicator"] {
+  background: var(--success);
+  transition: transform 250ms ease-out;
+}
+[data-slot="progress"].progress-track,
+[data-slot="progress"].card-progress {
+  background: var(--line);
+}
+[data-slot="separator"].toolbar-separator {
+  width: 1px;
+  height: 17px;
+  background: var(--line);
+  border: 0;
+}
+[data-slot="button"].icon-button {
+  padding: 0;
+}
+.icon-button [data-slot="tooltip-trigger"] {
+  display: inline-flex;
+}
+.chapter-link {
+  position: relative;
+  isolation: isolate;
+}
+.chapter-link.active {
+  background: transparent;
+}
+.chapter-highlight {
+  position: absolute;
+  inset: 0;
+  border-radius: 7px;
+  background: var(--active);
+  box-shadow: inset 2px 0 var(--accent);
+  z-index: -1;
+}
+.notice {
+  transform: none;
+}
+.focus-mode .topbar {
+  transition: height 180ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-slot="progress-indicator"],
+  .focus-mode .topbar {
+    transition: none;
+  }
+}
+
+.dialog label [data-slot="input"] {
+  height: 44px;
+}
+.dialog [data-slot="dialog-title"] {
+  font-family: Lora, Georgia, serif;
+  font-size: 24px;
+  font-weight: 400;
+  letter-spacing: -0.5px;
+  line-height: 1.3;
+}
+.chapter-link.active {
+  background: transparent;
+}
+.book-card:hover .book-cover {
+  transform: none;
+}
