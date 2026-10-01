@@ -1,3 +1,4 @@
+use crate::review::{self, ReviewData};
 use chrono::{DateTime, Duration, SecondsFormat, Utc};
 use serde::{Deserialize, Serialize};
 use std::{
@@ -33,6 +34,8 @@ pub struct Book {
     pub revision: u64,
     pub chapters: Vec<Chapter>,
     pub notes: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub review: Option<ReviewData>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -237,6 +240,9 @@ impl LibraryStore {
         let current_revision = existing.as_ref().map_or(0, |b| b.revision);
         if book.revision != current_revision {
             return Err(StoreError::new("CONFLICT", "This book changed after it was opened. Your draft has not replaced the saved copy. Reopen the library before restoring your draft."));
+        }
+        if let Some(previous) = &existing {
+            review::validate_append_only(previous.review.as_ref(), book.review.as_ref())?;
         }
         book.revision = current_revision
             .checked_add(1)
@@ -444,7 +450,7 @@ fn checkpoint_due(dir: &Path, now: DateTime<Utc>) -> Result<bool, StoreError> {
     Ok(now.signed_duration_since(last) >= CHECKPOINT_INTERVAL)
 }
 
-fn validate_id(id: &str) -> Result<(), StoreError> {
+pub(crate) fn validate_id(id: &str) -> Result<(), StoreError> {
     if id.is_empty()
         || id.len() > 80
         || !id
@@ -499,6 +505,9 @@ fn validate_book(book: &Book) -> Result<(), StoreError> {
     }
     if content_bytes as u64 > MAX_BOOK_BYTES {
         return Err(StoreError::invalid("A book must be smaller than 40 MB."));
+    }
+    if let Some(review) = &book.review {
+        review::validate(review)?;
     }
     Ok(())
 }
@@ -697,6 +706,7 @@ mod tests {
                 content: "The tide returned.\n\nSo did she. 🌊".into(),
             }],
             notes: "Remember the lighthouse.".into(),
+            review: None,
         }
     }
 
@@ -990,5 +1000,92 @@ mod tests {
         assert_eq!(store.save_book(draft()).unwrap_err().code, "CORRUPT_DATA");
         assert_eq!(store.load_library().unwrap_err().code, "CORRUPT_DATA");
         assert!(!outside.path().join("book.json").exists());
+    }
+
+    #[test]
+    fn legacy_books_gain_review_history_without_changing_manuscript_text() {
+        let (directory, store) = store();
+        let legacy = store.save_book(draft()).unwrap();
+        let path = directory.path().join("books/book-1/book.json");
+        assert!(!fs::read_to_string(&path).unwrap().contains("\"review\""));
+        let mut reviewed = legacy.clone();
+        reviewed.review = Some(crate::review::tests::review());
+        let saved = store.save_book(reviewed).unwrap();
+        assert_eq!(saved.chapters, legacy.chapters);
+        assert_eq!(saved.notes, legacy.notes);
+        drop(store);
+        let reopened = LibraryStore::open(directory.path()).unwrap();
+        assert_eq!(reopened.load_library().unwrap().books, vec![saved]);
+    }
+
+    #[test]
+    fn saved_review_audit_cannot_be_omitted_truncated_or_rewritten() {
+        let (directory, store) = store();
+        let mut book = draft();
+        book.review = Some(crate::review::tests::review());
+        let saved = store.save_book(book).unwrap();
+        let path = directory.path().join("books/book-1/book.json");
+        let before = fs::read(&path).unwrap();
+        let mut omitted = saved.clone();
+        omitted.review = None;
+        let mut truncated = saved.clone();
+        truncated.review.as_mut().unwrap().events.clear();
+        let mut rewritten = saved.clone();
+        rewritten.review.as_mut().unwrap().events[0]["actor"] = serde_json::json!("Someone else");
+        for invalid in [omitted, truncated, rewritten] {
+            assert_eq!(store.save_book(invalid).unwrap_err().code, "INVALID_INPUT");
+            assert_eq!(fs::read(&path).unwrap(), before);
+        }
+        let mut appended = saved.clone();
+        appended.review.as_mut().unwrap().events.push(serde_json::json!({"id":"event-2","threadId":"thread-1","at":"2026-09-30T19:00:00Z","actor":"Editor","type":"thread_resolved"}));
+        let appended = store.save_book(appended).unwrap();
+        assert_eq!(appended.review.as_ref().unwrap().events.len(), 2);
+        assert_eq!(appended.chapters, saved.chapters);
+    }
+
+    #[test]
+    fn history_and_draft_journals_retain_reviews_and_restore_copies_keep_anchor_ids() {
+        let (directory, store) = store();
+        let mut first = draft();
+        first.review = Some(crate::review::tests::review());
+        let first = store.save_book(first).unwrap();
+        let mut second = first.clone();
+        second.chapters[0].content.push_str(" A revision.");
+        second.review.as_mut().unwrap().events.push(serde_json::json!({"id":"event-2","threadId":"thread-1","at":"2026-09-30T19:00:00Z","actor":"Writer","type":"reply_added","messageId":"message-2","body":crate::review::tests::body("I updated the passage.")}));
+        let second = store.save_book(second).unwrap();
+        let snapshot = store
+            .read_version(&first.id, "00000000000000000001")
+            .unwrap();
+        assert_eq!(snapshot.review, first.review);
+        let pending = DraftJournal {
+            format: 1,
+            entries: vec![JournalEntry {
+                book: second.clone(),
+                saving: Some(second.clone()),
+            }],
+        };
+        store.write_draft_journal(pending.clone()).unwrap();
+        drop(store);
+        let store = LibraryStore::open(directory.path()).unwrap();
+        assert_eq!(store.read_draft_journal().unwrap(), Some(pending));
+        let mut stale = snapshot.clone();
+        stale.revision = second.revision;
+        assert_eq!(store.save_book(stale).unwrap_err().code, "INVALID_INPUT");
+        let mut restored = snapshot;
+        restored.id = "restored-book".into();
+        restored.revision = 0;
+        let restored = store.save_book(restored).unwrap();
+        assert_eq!(restored.chapters, first.chapters);
+        assert_eq!(restored.review, first.review);
+        assert_eq!(
+            store
+                .load_library()
+                .unwrap()
+                .books
+                .into_iter()
+                .find(|b| b.id == first.id)
+                .unwrap(),
+            second
+        );
     }
 }

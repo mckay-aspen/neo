@@ -5,8 +5,8 @@ Validated on macOS Apple Silicon with Bun 1.3.14 and Rust 1.98.1. Application ve
 ## Automated checks
 
 - TypeScript strict type checking and Vite production build passed.
-- Bun: **21 tests passed, 81 assertions**. Coverage includes edits during saves, concurrent flushes, rejected writes, slow journal coalescing, crash recovery, conflict recovery, malformed storage and manuscript conversion.
-- Rust: **14 tests passed**. Coverage includes atomic persistence, optimistic revisions, unsafe paths, symlinks, corrupt data, exclusive library locking, journal recovery, rolling backups, checkpoint cadence, history and trash retention.
+- Bun: **50 tests passed, 173 assertions**. Coverage includes edits during saves, concurrent flushes, rejected writes, journal/review recovery, conflict recovery, malformed storage, manuscript conversion, rich-text validation, Unicode anchoring and append-only review events.
+- Rust: **27 tests passed**. Coverage includes atomic persistence, optimistic revisions, unsafe paths, symlinks, corrupt data, exclusive library locking, journal recovery, rolling backups, checkpoint cadence, review/audit validation and retention in restored snapshots.
 - Desktop Clippy with warnings denied passed.
 - Both native debug and optimized release macOS application bundles built.
 - ZIP integrity checked. The optimized app contains an arm64 Mach-O executable; it is locally ad-hoc signed and is not Apple-notarized.
@@ -36,3 +36,15 @@ The final optimized macOS bundle was launched in midnight mode. Opening New manu
 The theme toggle, light palette and theme-preference handling were removed. Browser checks confirmed the midnight background and no theme controls. The typewriter sequence advanced automatically; Pause held the exact partial text, Next showed a complete quote while paused, and the sequence wrapped from quote four to quote one. At a 900 × 598 content viewport (the minimum desktop window minus its title bar), the sidebar and its content both measured 598px with the footer fully visible. A review caught and fixed pausing during the exit transition so it cannot leave a quote invisible. Reduced-motion behavior, hidden-document suspension and unmount cleanup were reviewed in source. The 21 Bun tests still pass.
 
 The optimized native app was rebuilt and opened with the theme control absent and the quote sequence visibly advancing. Production build, archive integrity and bundled license checks passed.
+
+## Local review system
+
+The production build and desktop Clippy passed. Fifty frontend tests and 27 Rust tests cover the review data model, threaded edits/replies/removal/resolution, immutable event history, unsafe links/nodes, rich-text limits, legacy files, UTF-16 anchors, duplicate/changed passages, journal recovery and snapshot copies. Actual TipTap JSON for supported toolbar formats was checked against the shared validation model. Rich comment rendering uses React escaping rather than HTML interpretation.
+
+Browser checks exercised selection, a bold comment, a highlighted reply, comment editing, resolve/reopen, and inspection of the original comment body in Activity. The manuscript's rendered text was compared before and after those actions and was identical. A replacement suggestion displayed both old and proposed text while preserving the original chapter. An unposted comment blocked Return to Write. The draft context remains attached to its original chapter when navigation changes.
+
+The optimized native app displayed review mode and posted a demonstration comment and reply on the optional sample manuscript. Cmd+Q with an unposted composer kept the window open and displayed a prompt to post or cancel. Posting a reply followed immediately by Cmd+Q saved both audit events; the chapter on disk remained unchanged and the pending journal was empty. The packaged app contains all five license resources, including the rich editor dependencies.
+
+Review collaboration is local, without identity verification or a server. The audit protects application-level append order, not direct external file changes. Unposted composers are memory-only and are not covered by crash recovery. Native Windows/Linux behavior, long-lived review histories near the documented limits, and a full accessibility audit remain unverified.
+
+The host locked after the native save-and-quit check, so the final visual reopen check was not completed. Disk inspection confirmed committed review events and an empty recovery journal.

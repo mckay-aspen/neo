@@ -3,6 +3,7 @@ import { copyEntries, type DraftJournal, type JournalEntry } from './journal';
 import { LibraryStore } from './library-store';
 import { newBook } from './manuscript';
 import { cloneBook, type Book, type StorageAdapter } from './types';
+import { appendReviewEvent, makeAnchor, reviewThreads } from './review';
 
 class MemoryJournal implements DraftJournal {
   entries: JournalEntry[] = [];
@@ -176,6 +177,47 @@ describe('acknowledged save queue', () => {
 });
 
 describe('interrupted session recovery', () => {
+  test('recovers review-only changes rather than discarding them as identical manuscript text', async () => {
+    const { store, adapter, journal } = setup();
+    const saved = { ...newBook('Reviewed book'), revision: 1 };
+    saved.chapters[0].content = 'A passage worth discussing.';
+    adapter.books = [cloneBook(saved)];
+    const draft = appendReviewEvent(saved, {
+      id: 'review-create', type: 'thread_created', threadId: 'thread-1', chapterId: saved.chapters[0].id,
+      actor: 'Reader', at: '2026-09-30T12:00:00.000Z', kind: 'comment', messageId: 'message-1',
+      anchor: makeAnchor(saved.chapters[0].content, 2, 9),
+      body: { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'A review-only draft.' }] }] },
+    });
+    journal.entries = [{ book: draft }];
+    await store.initialize();
+    expect(store.getSnapshot().unsavedCount).toBe(1);
+    expect(store.getSnapshot().recoveryNotice).toContain('Recovered');
+    await store.flush();
+    expect(adapter.books[0].review?.events).toHaveLength(1);
+    expect(reviewThreads(adapter.books[0].review)[0].messages[0].author).toBe('Reader');
+    expect(adapter.books[0].chapters[0].content).toBe(saved.chapters[0].content);
+  });
+
+  test('updates cannot rewrite or remove existing review events', async () => {
+    const { store, adapter } = setup();
+    const book = newBook('Reviewed book');
+    book.chapters[0].content = 'Text';
+    const saved = appendReviewEvent(book, {
+      id: 'review-create', type: 'thread_created', threadId: 'thread-1', chapterId: book.chapters[0].id,
+      actor: 'Reader', at: '2026-09-30T12:00:00.000Z', kind: 'highlight', messageId: 'message-1',
+      anchor: makeAnchor('Text', 0, 4), body: { type: 'doc', content: [{ type: 'paragraph' }] },
+    });
+    saved.revision = 1;
+    adapter.books = [saved];
+    await store.initialize();
+    expect(() => store.updateBook({ ...saved, review: undefined })).toThrow('cannot be removed');
+    const rewritten = cloneBook(saved);
+    rewritten.review!.events[0].actor = 'Impersonation';
+    expect(() => store.updateBook(rewritten)).toThrow('cannot be removed');
+    expect(store.getSnapshot().books[0].review!.events[0].actor).toBe('Reader');
+    expect(store.getSnapshot().unsavedCount).toBe(0);
+  });
+
   test('replays an unsaved new manuscript after restart', async () => {
     const { store, adapter, journal } = setup();
     journal.entries = [{ book: { ...newBook('Recovered'), notes: 'Unfinished thought' } }];

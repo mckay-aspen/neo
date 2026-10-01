@@ -1,4 +1,5 @@
 import { newBook } from './manuscript';
+import { assertReviewAppendOnly, reviewFingerprint } from './review';
 import type { DraftJournal, JournalEntry } from './journal';
 import { cloneBook, errorMessage, validateBook, validateLibrary, type Book, type SaveState, type StorageAdapter } from './types';
 
@@ -15,7 +16,7 @@ export interface LibrarySnapshot {
 function sameContent(left: Book, right: Book): boolean {
   const content = (book: Book) => JSON.stringify({
     id: book.id, title: book.title, author: book.author, description: book.description,
-    goal: book.goal, chapters: book.chapters, notes: book.notes,
+    goal: book.goal, chapters: book.chapters, notes: book.notes, review: reviewFingerprint(book.review),
   });
   return content(left) === content(right);
 }
@@ -133,7 +134,12 @@ export class LibraryStore {
         if (disk && sameContent(disk, working)) continue;
         const acknowledged = disk && entry.saving &&
           disk.revision === entry.saving.revision + 1 && sameContent(disk, entry.saving);
-        if ((disk && disk.revision === working.revision) || acknowledged) {
+        let retainsHistory = true;
+        if (disk) {
+          try { assertReviewAppendOnly(disk.review, working.review); }
+          catch { retainsHistory = false; }
+        }
+        if (retainsHistory && ((disk && disk.revision === working.revision) || acknowledged)) {
           working.revision = disk.revision;
           this.books[index] = working;
         } else if (!disk && working.revision === 0) {
@@ -177,6 +183,7 @@ export class LibraryStore {
     const book = validateBook(value);
     if (this.deleting.has(book.id)) throw new Error('This manuscript is being moved to trash.');
     const index = this.books.findIndex(item => item.id === book.id);
+    if (index >= 0) assertReviewAppendOnly(this.books[index].review, book.review);
     // Callers may hold a React render from before the latest save acknowledgment.
     book.revision = index >= 0 ? this.books[index].revision : 0;
     book.updatedAt = new Date().toISOString();
@@ -236,6 +243,7 @@ export class LibraryStore {
         this.pending.set(id, outgoing);
         await this.writeJournal();
         const saved = validateBook(await this.adapter.saveBook(outgoing));
+        assertReviewAppendOnly(outgoing.review, saved.review);
         if (saved.id !== id || saved.revision !== outgoing.revision + 1) {
           throw new Error('The save was not acknowledged correctly. Your recovery draft is preserved.');
         }

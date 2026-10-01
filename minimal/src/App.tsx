@@ -1,7 +1,10 @@
 import {
   useEffect,
+  useCallback,
   useRef,
   useState,
+  lazy,
+  Suspense,
   type ReactNode,
   type ComponentProps,
 } from "react";
@@ -18,6 +21,7 @@ import {
   History,
   Library,
   LoaderCircle,
+  MessageSquare,
   PanelLeftClose,
   Plus,
   Search,
@@ -66,6 +70,7 @@ import {
 } from "./lib";
 
 type ModalKind = "new" | "details" | "history" | "help" | null;
+const ReviewWorkspace = lazy(() => import('./components/review/review-workspace').then(module => ({ default: module.ReviewWorkspace })));
 const number = (n: number) => n.toLocaleString();
 const date = (s: string) =>
   new Date(s).toLocaleDateString(undefined, { month: "short", day: "numeric" });
@@ -261,6 +266,9 @@ export default function App() {
   };
   const [focus, setFocus] = useState(false);
   const [notes, setNotes] = useState(false);
+  const [reviewMode, setReviewMode] = useState(false);
+  const reviewDraftPending = useRef(false);
+  const setReviewDraftPending = useCallback((pending: boolean) => { reviewDraftPending.current = pending; }, []);
   const [notice, setNotice] = useState("");
   const [closing, setClosing] = useState(false);
   const historyRequest = useRef(0);
@@ -286,6 +294,10 @@ export default function App() {
     let exitUnlisten: (() => void) | undefined;
     let disposed = false;
     const finish = async (action: () => Promise<unknown>) => {
+      if (reviewDraftPending.current) {
+        setNotice("Post or cancel your comment before closing.");
+        return;
+      }
       setClosing(true);
       setModal(null);
       setSortOpen(false);
@@ -339,12 +351,13 @@ export default function App() {
       if ((event.metaKey || event.ctrlKey) && event.key === "s") {
         event.preventDefault();
         flushRef.current().catch(() => {});
+        if (reviewDraftPending.current) setNotice('Use the comment’s Post or Save edit button to keep your unposted draft.');
       }
       if (
         (event.metaKey || event.ctrlKey) &&
         event.shiftKey &&
         event.key.toLowerCase() === "f" &&
-        bookId
+        bookId && !reviewMode
       ) {
         event.preventDefault();
         setFocus((v) => !v);
@@ -360,7 +373,7 @@ export default function App() {
     };
     window.addEventListener("keydown", key);
     return () => window.removeEventListener("keydown", key);
-  }, [bookId, modal]);
+  }, [bookId, modal, reviewMode]);
   useEffect(() => {
     const element = editor.current;
     if (!element) return;
@@ -379,7 +392,15 @@ export default function App() {
     });
     if (element.parentElement) observer.observe(element.parentElement);
     return () => observer.disconnect();
-  }, [chapter?.content, chapter?.id, focus, notes]);
+  }, [chapter?.content, chapter?.id, focus, notes, reviewMode]);
+
+  useEffect(() => {
+    const guard = (event: BeforeUnloadEvent) => {
+      if (reviewDraftPending.current) { event.preventDefault(); event.returnValue = ''; }
+    };
+    window.addEventListener('beforeunload', guard);
+    return () => window.removeEventListener('beforeunload', guard);
+  }, []);
 
   useEffect(() => {
     if (!notice) return;
@@ -392,6 +413,15 @@ export default function App() {
     setChapterId(b.chapters[0]?.id ?? null);
     setNotes(false);
     setQuery("");
+    setReviewMode(false);
+  };
+  const goToLibrary = () => {
+    if (reviewDraftPending.current) { setNotice('Post or cancel your comment before leaving review mode.'); return; }
+    setBookId(null); setNotes(false); setFocus(false); setReviewMode(false);
+  };
+  const toggleReview = () => {
+    if (reviewMode && reviewDraftPending.current) { setNotice('Post or cancel your comment before returning to writing.'); return; }
+    setReviewMode(value => !value); setNotes(false); setFocus(false);
   };
   const patch = (change: Partial<Book>) => {
     if (book) {
@@ -509,16 +539,15 @@ export default function App() {
   };
   const restoreCopy = () => {
     if (!snapshot) return;
+    if (reviewDraftPending.current) { setHistoryError('Post or cancel your comment before opening a recovered manuscript.'); return; }
     const copy = {
       ...snapshot,
       id: crypto.randomUUID(),
       title: `${Array.from(snapshot.title).slice(0, 225).join("")} — recovered`,
       revision: 0,
       updatedAt: new Date().toISOString(),
-      chapters: snapshot.chapters.map((c) => ({
-        ...c,
-        id: crypto.randomUUID(),
-      })),
+      // Chapter IDs are scoped to a book; keep them so copied review anchors stay attached.
+      chapters: snapshot.chapters.map((c) => ({ ...c })),
     };
     try {
       updateBook(copy);
@@ -561,7 +590,7 @@ export default function App() {
   return (
     <div
       inert={closing}
-      className={`app ${book ? "writing" : "browsing"} ${focus ? "focus-mode" : ""}`}
+      className={`app ${book ? "writing" : "browsing"} ${focus ? "focus-mode" : ""} ${reviewMode ? "reviewing" : ""}`}
     >
       <input
         ref={fileInput}
@@ -575,10 +604,7 @@ export default function App() {
         <aside className="sidebar">
           <button
             className="brand"
-            onClick={() => {
-              setBookId(null);
-              setFocus(false);
-            }}
+            onClick={goToLibrary}
             aria-label="NEO Minimal home"
           >
             <span className="brand-mark">
@@ -592,10 +618,7 @@ export default function App() {
             <>
               <button
                 className="back-link"
-                onClick={() => {
-                  setBookId(null);
-                  setNotes(false);
-                }}
+                onClick={goToLibrary}
               >
                 <ArrowLeft size={15} />
                 Your library
@@ -610,6 +633,7 @@ export default function App() {
                 <IconButton
                   className="icon-button"
                   onClick={addChapter}
+                  disabled={reviewMode}
                   aria-label="Add chapter"
                 >
                   <Plus size={16} />
@@ -645,6 +669,7 @@ export default function App() {
               </nav>
               <button
                 className={`sidebar-action ${notes ? "active" : ""}`}
+                disabled={reviewMode}
                 onClick={() => setNotes((v) => !v)}
               >
                 <FileText size={17} />
@@ -656,6 +681,7 @@ export default function App() {
                   <button
                     onClick={event => openModal("details", event.currentTarget)}
                     aria-label="Edit word goal"
+                    disabled={reviewMode}
                   >
                     {book.goal ? `${Math.round(percent)}%` : "Set goal"}
                   </button>
@@ -674,6 +700,7 @@ export default function App() {
                 )}
                 <button
                   className="sidebar-action"
+                  disabled={reviewMode}
                   onClick={event => openModal("details", event.currentTarget)}
                 >
                   <Settings2 size={16} />
@@ -734,10 +761,7 @@ export default function App() {
             {book ? (
               <>
                 <button
-                  onClick={() => {
-                    setBookId(null);
-                    setFocus(false);
-                  }}
+                  onClick={goToLibrary}
                 >
                   Library
                 </button>
@@ -779,10 +803,14 @@ export default function App() {
                   orientation="vertical"
                   className="toolbar-separator"
                 />
+                <Button className="review-toggle" variant="ghost" aria-pressed={reviewMode} onClick={toggleReview}>
+                  <MessageSquare size={16} />{reviewMode ? 'Return to Write' : 'Review'}
+                </Button>
                 <IconButton
                   className={`icon-button ${focus ? "selected" : ""}`}
                   aria-label={focus ? "Exit focus mode" : "Enter focus mode"}
                   title="Focus mode · ⌘⇧F"
+                  disabled={reviewMode}
                   onClick={() => setFocus((v) => !v)}
                 >
                   {focus ? <PanelLeftClose size={17} /> : <Focus size={17} />}
@@ -1012,6 +1040,10 @@ export default function App() {
               <span>No accounts. No subscriptions. Just words.</span>
             </footer>
           </motion.main>
+        ) : reviewMode && chapter ? (
+          <Suspense fallback={<div className="review-loading" role="status">Opening review mode…</div>}>
+            <ReviewWorkspace key={book.id} book={book} chapter={chapter} onChange={updateBook} onChapter={setChapterId} onDraftChange={setReviewDraftPending} />
+          </Suspense>
         ) : (
           <motion.main key={book.id} className="editor-layout" {...entrance}>
             <div className="manuscript-scroll">
@@ -1245,8 +1277,9 @@ export default function App() {
           </p>
           <p className="help-copy">
             Import plain text or Markdown. Export your manuscript as Markdown.
-            This edition uses plain text; rich formatting, EPUB, and Word export
-            are not included.
+            The manuscript uses plain text. Review mode adds anchored comments,
+            threaded replies, formatted annotations and suggested wording without
+            changing the original. EPUB and Word export are not included.
           </p>
           <p className="help-copy">
             {isDesktop

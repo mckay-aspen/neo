@@ -1,4 +1,7 @@
+mod review;
 mod storage;
+
+pub use review::ReviewData;
 
 pub use storage::{
     Book, Chapter, DraftJournal, JournalEntry, Library, LibraryStore, StoreError, Version,

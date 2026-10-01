@@ -1,3 +1,6 @@
+import { validateReview } from './review';
+import type { ReviewData } from './review-types';
+
 export interface Chapter {
   id: string;
   title: string;
@@ -14,6 +17,7 @@ export interface Book {
   revision: number;
   chapters: Chapter[];
   notes: string;
+  review?: ReviewData;
 }
 
 export interface Library { books: Book[] }
@@ -36,7 +40,11 @@ export interface StorageAdapter {
 }
 
 export function cloneBook(book: Book): Book {
-  return { ...book, chapters: book.chapters.map(chapter => ({ ...chapter })) };
+  return {
+    ...book,
+    chapters: book.chapters.map(chapter => ({ ...chapter })),
+    ...(book.review ? { review: JSON.parse(JSON.stringify(book.review)) as ReviewData } : {}),
+  };
 }
 
 export function validateBook(value: unknown): Book {
@@ -68,7 +76,8 @@ export function validateBook(value: unknown): Book {
       bytes(JSON.stringify(book, null, 2)) > 40 * 1024 * 1024) {
     throw new Error('This manuscript exceeds the supported size. Keep chapters below 10 MB, notes below 2 MB and the manuscript below 40 MB.');
   }
-  return cloneBook(book);
+  const review = book.review === undefined ? undefined : validateReview(book.review);
+  return cloneBook({ ...book, ...(review ? { review } : {}) });
 }
 
 export function validateLibrary(value: unknown): Library {

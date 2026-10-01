@@ -35,6 +35,8 @@ The bundle is written to `minimal/src-tauri/target/release/bundle/macos/`. Local
 - Plain text and Markdown import, and Markdown export through a native Save dialog.
 - Keyboard shortcuts, shadcn/Radix dialogs, sorting controls, tooltips and progress indicators.
 - Subtle Motion transitions that respect reduced-motion preferences.
+- A separate Review mode with anchored comments, threaded replies, highlights, strikethroughs and proposed wording, without editing manuscript text.
+- Rich comment formatting, resolution/reopening, safe reattachment after text changes, and an append-only activity history.
 
 No account, cloud service, telemetry, AI API key, or subscription is required. Fonts and icons ship with the application. The sample manuscript is optional and can be edited freely.
 
@@ -48,7 +50,7 @@ The new persistence layer uses atomic file replacement, synchronized writes, a r
 
 The macOS data folder is `~/Library/Application Support/com.neominimal.desktop`. Tauri uses the platform application-data folder on Windows and Linux. `NEO_MINIMAL_DATA_DIR` overrides it for development and testing.
 
-- `books/<id>/book.json`: readable JSON containing metadata, chapter text and notes.
+- `books/<id>/book.json`: readable JSON containing metadata, chapter text, notes and posted review events.
 - `books/<id>/previous.json`: the immediately previous committed draft.
 - `books/<id>/versions/`: periodic checkpoints for earlier drafts.
 - `books/<id>/archive/`: older checkpoints retained on disk.
@@ -57,7 +59,15 @@ The macOS data folder is `~/Library/Application Support/com.neominimal.desktop`.
 
 The previous draft is refreshed on saves; history checkpoints are spaced five minutes apart, with up to 30 distinct drafts shown, including the immediate previous save. Older checkpoints are archived. Archives grow over time. Back up this folder with your normal backup system. Recovery copies on the same disk are not an off-device backup. Never edit or move library files while the application is running. The app does **not** modify or migrate the original `NEO Library` folder.
 
-To bring writing from original NEO, export Markdown or plain text there, then import that file into NEO Minimal. Import creates a new manuscript and leaves the source file alone. Full-library migration, rich text, anchored placeholders, EPUB/Word/PDF export, multilingual spellcheck, omnibus binding, cover generation and Pocket/mobile synchronization are outside this first version.
+To bring writing from original NEO, export Markdown or plain text there, then import that file into NEO Minimal. Import creates a new manuscript and leaves the source file alone. Full-library migration, rich manuscript formatting, anchored placeholders, EPUB/Word/PDF export, multilingual spellcheck, omnibus binding, cover generation and Pocket/mobile synchronization are outside this first version.
+
+## Review without rewriting
+
+Open a manuscript and choose **Review**. Select a passage, then choose Comment, Highlight, Strike or Suggest. Comments and replies support bold, italic, underline, strikethrough, highlighting, headings, lists, quotations, code and safe links. Suggested replacement wording is displayed beside the unchanged original; resolving a thread does not apply it to the manuscript.
+
+The Activity panel retains creation, replies, previous comment text, removals, resolution, reopening and reattachment. Posted reviews use the same Rust save, journal and recovery path as writing. Unposted composers are explicitly marked as drafts; post or save the comment before leaving or quitting. Forced termination can lose unposted composer text.
+
+Reviews are local. Reviewer names are labels rather than authenticated identities, and the audit is application history rather than a tamper-proof log. Markdown export contains only the manuscript; keep a backup of the data folder to preserve comments and their history. See [the review guide](docs/REVIEW_MODE.md).
 
 ## Check the code
 

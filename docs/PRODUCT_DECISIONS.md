@@ -27,6 +27,7 @@ The intended first-version scope is:
 - Debounced autosave with visible saving, saved and failed states.
 - Atomic persistence, revision checks and recoverable history, with clear restoration actions.
 - Local text and Markdown import; Markdown export.
+- An optional local review overlay with anchored annotations, rich comment threads and an append-only audit history.
 
 This document records the product boundary, not a substitute for tested implementation status. The application README and verification results describe which behaviors are implemented and verified.
 
@@ -50,7 +51,7 @@ A dedicated upstream-library importer is a separate extension. Upstream stores H
 
 ## Deferred scope
 
-The initial release does not aim to include EPUB or DOCX production, rich formatting, page-layout controls, cover generation, omnibus binding, mobile apps, cloud synchronization, collaboration, AI features, or an account system. These omissions keep the first version concentrated on the writing and recovery flow. They can be revisited through concrete writer needs rather than parity with upstream.
+The current release does not aim to include EPUB or DOCX production, rich manuscript formatting, page-layout controls, cover generation, omnibus binding, mobile apps, cloud synchronization, remote collaboration, AI features, or an account system. Local review threads support formatted comments, but the underlying manuscript stays plain text. These boundaries can be revisited through concrete writer needs rather than parity with upstream.
 
 ## Verification priorities
 
